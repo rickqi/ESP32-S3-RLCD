@@ -433,6 +433,53 @@ I (2564) esp_netif_handlers: sta ip: 192.168.50.36
 
 ---
 
+## 阶段十一：仓库结构重构
+
+### 11.1 背景
+
+定制固件原位于 `docs/examples/ESP32-S3-RLCD-4.2-GitHub/02_Example/ESP-IDF/02_WIFI_STA/`，与 10 个原厂示例混在 5 层目录深处，路径冗长且难以区分自有代码与上游参考代码。
+
+### 11.2 结构调整
+
+| 内容 | 旧路径 | 新路径 |
+|------|--------|--------|
+| 定制固件 | `docs/examples/.../ESP-IDF/02_WIFI_STA/` | `projects/wifi_sta/` |
+| 截屏工具 | `screenshot.py`（根目录） | `tools/screenshot.py` |
+| 固件报告 | `FIRMWARE_REPORT.md`（根目录） | `docs/FIRMWARE_REPORT.md` |
+| 安装日志 | `SETUP_LOG.md`（根目录） | `docs/SETUP_LOG.md` |
+
+新目录结构：
+```
+ESP32-S3-RLCD/
+├── projects/wifi_sta/     # ★ 定制开发固件（独立管理）
+├── tools/                 # 开发工具
+├── docs/                  # 参考资料与文档
+│   ├── examples/          # 原厂示例（只读参考）
+│   ├── FIRMWARE_REPORT.md
+│   └── SETUP_LOG.md
+├── README.md
+└── .gitignore
+```
+
+### 11.3 操作
+
+- 20 个文件通过 `git mv` 移动（100% rename，保留 git 历史）
+- README.md 更新 §4 目录结构、§13.3 构建路径（`cd projects/wifi_sta`）、§13.4 工具路径（`tools/screenshot.py`）、§13.5 仓库结构
+- 原厂示例 `docs/examples/` 保持不动
+- Commit: `0fa2be3`，已推送到 GitHub
+
+### 11.4 构建路径变化
+
+```bash
+# 旧
+cd docs/examples/ESP32-S3-RLCD-4.2-GitHub/02_Example/ESP-IDF/02_WIFI_STA
+
+# 新
+cd projects/wifi_sta
+```
+
+---
+
 ## 附录：工具与版本
 
 | 工具 | 版本 | 用途 |
@@ -450,16 +497,17 @@ I (2564) esp_netif_handlers: sta ip: 192.168.50.36
 
 | 文件 | 路径 |
 |------|------|
-| README 安装手册 | `D:\codes\ESP32-S3-RLCD\README.md` |
-| 固件分析报告 | `D:\codes\ESP32-S3-RLCD\FIRMWARE_REPORT.md` |
-| 本安装调试日志 | `D:\codes\ESP32-S3-RLCD\SETUP_LOG.md` |
-| FactoryProgram WiFi 源码 | `.../10_FactoryProgram/components/app_bsp/esp_wifi_bsp.c` |
-| WIFI_STA 显示主程序 | `.../02_WIFI_STA/main/main.cpp` |
-| WIFI_STA WiFi 源码 | `.../02_WIFI_STA/components/esp_wifi_bsp/esp_wifi_bsp.c` |
-| WIFI_STA 显示驱动 | `.../02_WIFI_STA/components/port_bsp/display_bsp.cpp` |
-| WIFI_STA LVGL 端口 | `.../02_WIFI_STA/components/app_bsp/lvgl_bsp.cpp` |
-| 板卡引脚配置 | `.../XiaoZhiCode_V2.1.0/main/boards/waveshare-s3-rlcd-4.2/config.h` |
-| XiaoZhi 分区表 | `.../XiaoZhiCode_V2.1.0/partitions/v2/16m.csv` |
+| README 安装手册 | `README.md` |
+| 固件分析报告 | `docs/FIRMWARE_REPORT.md` |
+| 本安装调试日志 | `docs/SETUP_LOG.md` |
+| 截屏工具 | `tools/screenshot.py` |
+| 定制固件主程序 | `projects/wifi_sta/main/main.cpp` |
+| WiFi 初始化源码 | `projects/wifi_sta/components/esp_wifi_bsp/esp_wifi_bsp.c` |
+| ST7305 显示驱动 | `projects/wifi_sta/components/port_bsp/display_bsp.cpp` |
+| LVGL 端口层 | `projects/wifi_sta/components/app_bsp/lvgl_bsp.cpp` |
+| FactoryProgram WiFi 源码 | `docs/examples/.../10_FactoryProgram/components/app_bsp/esp_wifi_bsp.c` |
+| 板卡引脚配置 | `docs/examples/.../XiaoZhiCode_V2.1.0/main/boards/waveshare-s3-rlcd-4.2/config.h` |
+| XiaoZhi 分区表 | `docs/examples/.../XiaoZhiCode_V2.1.0/partitions/v2/16m.csv` |
 
 ---
 
