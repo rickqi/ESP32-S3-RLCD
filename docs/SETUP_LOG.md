@@ -480,6 +480,78 @@ cd projects/wifi_sta
 
 ---
 
+## 阶段十二：NTP 时钟显示功能
+
+### 12.1 需求
+
+用户反馈屏幕缺少时间信息，要求在状态栏 `Connected` 行的右端增加实时时钟显示。
+
+### 12.2 方案
+
+通过 SNTP（Simple Network Time Protocol）在 WiFi 连接后自动同步网络时间，显示北京时区（UTC+8）的 `HH:MM:SS`。
+
+### 12.3 实现
+
+**文件变更：**
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `projects/wifi_sta/main/main.cpp` | **修改** | +`<time.h>`, `"esp_sntp.h"` 头文件；+`lbl_clock` 标签；+`start_sntp()`/`sntp_sync_cb()` 函数；UI 中右对齐时钟；每 2 秒刷新 |
+
+**SNTP 初始化流程：**
+```
+WiFi Connected → start_sntp() [一次触发]
+  → sntp_setoperatingmode(SNTP_OPMODE_POLL)
+  → sntp_setservername(0, "ntp.aliyun.com")
+  → sntp_setservername(1, "pool.ntp.org")
+  → sntp_set_time_sync_notification_cb(sntp_sync_cb)
+  → sntp_init()
+  → setenv("TZ", "CST-8"), tzset()
+```
+
+**时钟 UI 布局：**
+```cpp
+lbl_clock = lv_label_create(scr);
+lv_label_set_text(lbl_clock, "--:--:--");
+lv_obj_align(lbl_clock, LV_ALIGN_TOP_RIGHT, -25, 48);
+// 右端对齐，y=48 与 "Connected" 同行
+```
+
+**刷新逻辑：** `wifi_info_task` 每 2 秒执行，NTP 同步前显示 `--:--:--`，同步后 `localtime_r()` + `strftime("%H:%M:%S")` 显示实时时间。
+
+### 12.4 编译产物
+
+```
+03_WIFI_Test.bin binary size 0xf8710 bytes (993KB)
+Smallest app partition: 0x100000 (1MB), 0x78f0 bytes (3%) free.
+```
+
+新增 ~38KB（SNTP 协议栈 + mbedtls TLS 依赖）。
+
+### 12.5 验证
+
+- **串口日志确认：** `I (7227) WIFI_STA: NTP time synced`
+- **截图像素分析：** 状态行右侧（x=340~374, y=53~60）检测到 32 个黑色像素，符合 `HH:MM:SS` 渲染
+- **自动截图时机：** WiFi 连接后 ~4s 触发，NTP 同步后 ~0.3s 截图
+
+### 12.6 屏幕布局（最终版）
+
+```
+WiFi STA
+──────────────────────────────────────
+Connected                        14:23:05    ← 时钟右对齐
+SSID:   rickqi11
+IP:     192.168.50.36
+RSSI:   -58 dBm
+MAC:    A4:CB:8F:DA:8C:9C
+Uptime: 120 s
+──────────────────────────────────────
+WIFI_STA + ST7305 RLCD + LVGL
+WiFi status auto-refresh @ 2s
+```
+
+---
+
 ## 附录：工具与版本
 
 | 工具 | 版本 | 用途 |

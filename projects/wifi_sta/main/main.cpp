@@ -7,12 +7,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_netif.h"
+#include "esp_sntp.h"
 #include "driver/gpio.h"
 #include "mbedtls/base64.h"
 
@@ -28,14 +30,42 @@ static DisplayPort *g_display = nullptr;
 // UI labels
 static lv_obj_t *lbl_title;
 static lv_obj_t *lbl_status;
+static lv_obj_t *lbl_clock;
 static lv_obj_t *lbl_ssid;
 static lv_obj_t *lbl_ip;
 static lv_obj_t *lbl_rssi;
 static lv_obj_t *lbl_mac;
 static lv_obj_t *lbl_uptime;
 
+// SNTP state
+static volatile bool sntp_started = false;
+static volatile bool sntp_synced = false;
+
 // LVGL flush callback: convert RGB565 -> 1-bit for ST7305
 static void take_screenshot(void);
+
+// SNTP: sync real-world clock after WiFi connects
+static void sntp_sync_cb(struct timeval *tv)
+{
+    sntp_synced = true;
+    ESP_LOGI(TAG, "NTP time synced");
+}
+
+static void start_sntp(void)
+{
+    if (sntp_started) return;
+    sntp_started = true;
+
+    ESP_LOGI(TAG, "Initializing SNTP");
+    sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    sntp_setservername(0, "ntp.aliyun.com");   // Alibaba NTP (fast in China)
+    sntp_setservername(1, "pool.ntp.org");
+    sntp_set_time_sync_notification_cb(sntp_sync_cb);
+    sntp_init();
+
+    setenv("TZ", "CST-8", 1);   // UTC+8 China Standard Time
+    tzset();
+}
 
 static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
@@ -64,6 +94,10 @@ static void wifi_info_task(void *arg)
 
         wifi_ap_record_t ap;
         bool connected = (esp_wifi_sta_get_ap_info(&ap) == ESP_OK);
+
+        if (connected) {
+            start_sntp();   // one-shot, fires on first connect
+        }
 
         if (Lvgl_lock(100)) {
             char buf[80];
@@ -100,6 +134,16 @@ static void wifi_info_task(void *arg)
                 }
                 lv_label_set_text(lbl_rssi, "RSSI:   --");
                 lv_label_set_text(lbl_ip,   "IP:     --");
+            }
+
+            // Clock: update every loop (real time after NTP sync)
+            if (sntp_synced) {
+                time_t now;
+                struct tm timeinfo;
+                time(&now);
+                localtime_r(&now, &timeinfo);
+                strftime(buf, sizeof(buf), "%H:%M:%S", &timeinfo);
+                lv_label_set_text(lbl_clock, buf);
             }
 
             snprintf(buf, sizeof(buf), "Uptime: %lu s", (unsigned long)boot_sec);
@@ -270,6 +314,12 @@ extern "C" void app_main(void)
         lv_label_set_text(lbl_status, "Connecting...");
         lv_obj_set_style_text_color(lbl_status, lv_color_black(), 0);
         lv_obj_align(lbl_status, LV_ALIGN_TOP_LEFT, 25, 48);
+
+        // Clock - right-aligned on same row as status
+        lbl_clock = lv_label_create(scr);
+        lv_label_set_text(lbl_clock, "--:--:--");
+        lv_obj_set_style_text_color(lbl_clock, lv_color_black(), 0);
+        lv_obj_align(lbl_clock, LV_ALIGN_TOP_RIGHT, -25, 48);
 
         // SSID
         lbl_ssid = lv_label_create(scr);

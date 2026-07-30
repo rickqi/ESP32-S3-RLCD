@@ -7,6 +7,39 @@ CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_FREERTOS_HZ=1000
+
+# === Partition table (fix 3% free space warning) ===
+# Default SINGLE_APP gives only 1MB factory app on a 16MB chip (15MB wasted).
+# SINGLE_APP_LARGE gives a 3MB factory app — no custom CSV needed.
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+
+# === Compiler optimization (-Os for size; was -Og debug) ===
+# Recovers ~10-20% code size. Typical embedded release setting.
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+CONFIG_COMPILER_OPTIMIZATION_DEBUG=n
+
+# === LVGL size optimization ===
+# Don't compile LVGL's bundled examples into the firmware
+CONFIG_LV_BUILD_EXAMPLES=n
+# UI only uses lv_label + lv_line; disable unused "extra" widgets
+CONFIG_LV_USE_ANIMIMG=n
+CONFIG_LV_USE_CALENDAR=n
+CONFIG_LV_USE_CHART=n
+CONFIG_LV_USE_COLORWHEEL=n
+CONFIG_LV_USE_IMGBTN=n
+CONFIG_LV_USE_KEYBOARD=n
+CONFIG_LV_USE_LED=n
+CONFIG_LV_USE_LIST=n
+CONFIG_LV_USE_MENU=n
+CONFIG_LV_USE_METER=n
+CONFIG_LV_USE_MSGBOX=n
+CONFIG_LV_USE_SPAN=n
+CONFIG_LV_USE_SPINBOX=n
+CONFIG_LV_USE_SPINNER=n
+CONFIG_LV_USE_TABVIEW=n
+CONFIG_LV_USE_TILEVIEW=n
+CONFIG_LV_USE_WIN=n
+
 # LVGL configuration for 1-bit reflective LCD
 CONFIG_LV_MEM_SIZE_KILOBYTES=64
 CONFIG_LV_DISP_DEF_REFR_PERIOD=1

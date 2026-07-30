@@ -109,7 +109,7 @@ ESP32-S3-RLCD/
 ├── projects/                      # ★ 定制开发固件（我们的代码）
 │   └── wifi_sta/                  # WiFi STA 固件：显示+WiFi+截屏
 │       ├── main/
-│       │   ├── main.cpp           # 主程序：WiFi + LVGL UI + 串口截屏
+│       │   ├── main.cpp           # 主程序：WiFi + LVGL UI + NTP 时钟 + 串口截屏
 │       │   ├── CMakeLists.txt
 │       │   └── idf_component.yml
 │       ├── components/
@@ -127,6 +127,7 @@ ESP32-S3-RLCD/
 ├── docs/                          # 参考资料与文档
 │   ├── FIRMWARE_REPORT.md         # 固件分析报告
 │   ├── SETUP_LOG.md               # 安装调试日志
+│   ├── wifi_sta_screen.png   # 屏幕截图参考
 │   ├── hardware/                  # 原理图、3D 结构文件（gitignored）
 │   ├── datasheets/                # 芯片数据手册（gitignored）
 │   └── examples/                  # 原厂示例（只读参考，不修改）
@@ -525,7 +526,14 @@ idf.py build                # 生成 build/ 目录 + .bin 固件
 idf.py -p COM4 flash monitor
 ```
 
-> **WiFi STA 定制固件**位于 `projects/wifi_sta/`，包含 ST7305 显示驱动、LVGL UI 和串口截屏功能。WiFi 凭据在 `components/esp_wifi_bsp/esp_wifi_bsp.c` 中修改。
+> **WiFi STA 定制固件**位于 `projects/wifi_sta/`，包含 ST7305 显示驱动、LVGL UI、NTP 网络时钟和串口截屏功能。
+> 
+> 固件功能：
+> - WiFi STA 自动连接（凭据在 `components/esp_wifi_bsp/esp_wifi_bsp.c` 修改）
+> - 实时状态显示：SSID、IP、RSSI、MAC、运行时间
+> - **NTP 网络时钟**（同步 ntp.aliyun.com，北京时区 UTC+8，刷新间隔 2s）
+> - 三种截屏方式：自动触发（WiFi 连接后 4s）/ BOOT 按键 / 串口 SHOOT 命令
+> - 屏幕截图参考：![屏幕截图](docs/wifi_sta_screen.png)
 
 ### 13.4 截屏工具
 
@@ -540,6 +548,10 @@ python tools/screenshot.py COM4
 python tools/screenshot.py COM4 --listen
 ```
 
+> 屏幕截图示例：![屏幕截图](docs/wifi_sta_screen.png)
+> 
+> 截图文件（`screenshot_*.png`）输出到项目根目录，已加入 `.gitignore` 不纳入版本管理。
+
 ### 13.5 目录结构（Git 仓库）
 
 ```
@@ -550,7 +562,7 @@ ESP32-S3-RLCD/
 ├── projects/                         # ★ 定制开发固件
 │   └── wifi_sta/
 │       ├── main/
-│       │   ├── main.cpp              # WiFi + LVGL + 截屏
+│       │   ├── main.cpp              # WiFi + LVGL + NTP 时钟 + 截屏
 │       │   ├── CMakeLists.txt
 │       │   └── idf_component.yml
 │       ├── components/
@@ -567,6 +579,7 @@ ESP32-S3-RLCD/
 ├── docs/                             # 参考资料与文档
 │   ├── FIRMWARE_REPORT.md            # 固件分析报告
 │   ├── SETUP_LOG.md                  # 安装调试日志
+│   └── wifi_sta_screen.png     # 屏幕截图参考
 │   └── examples/                     # 原厂示例（只读参考）
 │       └── ESP32-S3-RLCD-4.2-GitHub/
 │           └── 02_Example/ESP-IDF/
