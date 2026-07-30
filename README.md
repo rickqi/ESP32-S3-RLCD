@@ -106,46 +106,44 @@ ESP32-S3-RLCD-4.2 是一款基于 ESP32-S3-WROOM-1-N16R8 的全反射屏 AIoT �
 
 ```
 ESP32-S3-RLCD/
-├── docs/                          # 技术资料
-│   ├── hardware/                  # 原理图、3D 结构文件
-│   │   ├── ESP32-S3-RLCD-4.2-schematic.pdf
-│   │   └── ESP32-S3-RLCD-4.2-3dFile.rar
-│   ├── datasheets/                # 芯片数据手册
-│   │   ├── ESP32-S3_datasheet_cn.pdf
-│   │   ├── ESP32-S3_datasheet_en.pdf
-│   │   ├── ESP32-S3_technical_reference_manual_cn.pdf
-│   │   ├── ESP32-S3_technical_reference_manual_en.pdf
-│   │   ├── ST7305_datasheet.pdf
-│   │   ├── ES8311_datasheet.pdf
-│   │   ├── PCF85063_datasheet.pdf
-│   │   └── SHTC3_datasheet.pdf
-│   ├── examples/                  # 示例程序
-│   │   ├── ESP32-S3-RLCD-4.2-Demo.zip    # 打包下载的完整示例
-│   │   └── ESP32-S3-RLCD-4.2-GitHub/     # Git 仓库（完整源码）
-│   │       ├── 01_Arduino_Libraries/     # Arduino 第三方依赖库
-│   │       │   ├── lvgl8/                # LVGL v8（用于 v8 示例）
-│   │       │   ├── lvgl9/                # LVGL v9（用于 v9 示例）
-│   │       │   ├── SensorLib/            # 传感器驱动库
-│   │       │   └── U8g2/                 # 单色显示屏库
-│   │       │   └── ReadMe.txt            # 库安装说明
-│   │       │
-│   │       ├── 02_Example/               # 示例代码
-│   │       │   ├── Arduino/              # Arduino IDE 示例（10 个）
-│   │       │   ├── ESP-IDF/              # ESP-IDF 示例（11 个）
-│   │       │   ├── ESPHome/              # ESPHome YAML 配置（3 个）
-│   │       │   └── XiaoZhi/              # 小智 AI 源码
-│   │       │       └── XiaoZhiCode_V2.1.0/
-│   │       │
-│   │       └── 03_Firmware/              # 预编译固件
-│   │           ├── 01_Factory_V1.bin     # 出厂测试固件
-│   │           └── 02_XiaoZhi_V2.1.0.bin # 小智 AI 固件
-│   │
-│   └── community/               # 社区资源
-│       ├── Bilibili-AI-Assistant-ESP32-S3.mp4  # 演示视频
-│       └── xiaozhi-esp32.zip    # 社区 xiaozhi-esp32 仓库
+├── projects/                      # ★ 定制开发固件（我们的代码）
+│   └── wifi_sta/                  # WiFi STA 固件：显示+WiFi+截屏
+│       ├── main/
+│       │   ├── main.cpp           # 主程序：WiFi + LVGL UI + 串口截屏
+│       │   ├── CMakeLists.txt
+│       │   └── idf_component.yml
+│       ├── components/
+│       │   ├── port_bsp/          # ST7305 LCD 驱动（含 GetPixel 截屏接口）
+│       │   ├── app_bsp/           # LVGL 端口层
+│       │   ├── esp_wifi_bsp/      # WiFi 初始化（凭据在此修改）
+│       │   └── user_app/          # 用户应用层
+│       ├── CMakeLists.txt
+│       ├── sdkconfig.defaults     # LVGL / PSRAM 配置
+│       └── dependencies.lock
 │
-└── README.md                     # 本文件
+├── tools/                         # 开发工具
+│   └── screenshot.py              # 屏幕截图工具（自动/按键/命令三种模式）
+│
+├── docs/                          # 参考资料与文档
+│   ├── FIRMWARE_REPORT.md         # 固件分析报告
+│   ├── SETUP_LOG.md               # 安装调试日志
+│   ├── hardware/                  # 原理图、3D 结构文件（gitignored）
+│   ├── datasheets/                # 芯片数据手册（gitignored）
+│   └── examples/                  # 原厂示例（只读参考，不修改）
+│       └── ESP32-S3-RLCD-4.2-GitHub/
+│           ├── 01_Arduino_Libraries/   # Arduino 第三方依赖库
+│           ├── 02_Example/
+│           │   ├── Arduino/            # Arduino IDE 示例（10 个）
+│           │   ├── ESP-IDF/            # ESP-IDF 示例（11 个，原厂未修改）
+│           │   ├── ESPHome/            # ESPHome YAML 配置（3 个）
+│           │   └── XiaoZhi/            # 小智 AI 源码
+│           └── 03_Firmware/            # 预编译固件
+│
+├── README.md                      # 本文件
+└── .gitignore
 ```
+
+> **设计原则**：`projects/` 存放我们定制开发的固件，`docs/examples/` 是微雪原厂示例的只读参考。两者独立管理，互不干扰。
 
 ---
 
@@ -514,20 +512,20 @@ git clone https://github.com/waveshareteam/ESP32-S3-RLCD-4.2.git docs/examples/E
 | **原理图** | `docs/hardware/` | 5.5 MB | 同上 |
 | **社区视频** | `docs/community/` | 40 MB | [Bilibili BV1PsfhBCEqA](https://www.bilibili.com/video/BV1PsfhBCEqA) |
 | **XiaoZhi 源码** | `XiaoZhiCode_V2.1.0/` | 5.4 MB | `git clone https://github.com/78/xiaozhi-esp32.git` |
-| **截图输出** | `screenshot_*.png/pbm` | ~18 KB | `python screenshot.py COM4` 运行生成 |
+| **截图输出** | `screenshot_*.png/pbm` | ~18 KB | `python tools/screenshot.py COM4` 运行生成 |
 | **OpenCode 会话** | `.omo/` | — | OpenCode IDE 自动生成 |
 
-### 13.3 从源码编译固件
+### 13.3 从源码编译定制固件
 
 ```bash
 # ESP-IDF 环境（需先安装 v5.5.x）
-cd docs/examples/ESP32-S3-RLCD-4.2-GitHub/02_Example/ESP-IDF/02_WIFI_STA
+cd projects/wifi_sta
 idf.py set-target esp32s3   # 自动下载 managed_components（LVGL 等）
 idf.py build                # 生成 build/ 目录 + .bin 固件
 idf.py -p COM4 flash monitor
 ```
 
-> **WiFi STA 定制固件**已包含在仓库源码中（`02_WIFI_STA/main/main.cpp`），包含 ST7305 显示驱动、LVGL UI 和串口截屏功能。WiFi 凭据在 `components/esp_wifi_bsp/esp_wifi_bsp.c` 中修改。
+> **WiFi STA 定制固件**位于 `projects/wifi_sta/`，包含 ST7305 显示驱动、LVGL UI 和串口截屏功能。WiFi 凭据在 `components/esp_wifi_bsp/esp_wifi_bsp.c` 中修改。
 
 ### 13.4 截屏工具
 
@@ -536,10 +534,10 @@ idf.py -p COM4 flash monitor
 pip install pyserial Pillow
 
 # 自动模式：复位设备后自动截图（WiFi 连接成功后触发）
-python screenshot.py COM4
+python tools/screenshot.py COM4
 
 # 按键模式：监听串口，按设备 BOOT 键触发
-python screenshot.py COM4 --listen
+python tools/screenshot.py COM4 --listen
 ```
 
 ### 13.5 目录结构（Git 仓库）
@@ -547,26 +545,34 @@ python screenshot.py COM4 --listen
 ```
 ESP32-S3-RLCD/
 ├── README.md                         # 安装使用手册
-├── FIRMWARE_REPORT.md                # 固件分析报告
-├── SETUP_LOG.md                      # 安装调试日志
-├── screenshot.py                     # 屏幕截图工具
 ├── .gitignore
-└── docs/examples/ESP32-S3-RLCD-4.2-GitHub/
-    └── 02_Example/ESP-IDF/
-        ├── 02_WIFI_STA/              # ← 我们的定制固件
-        │   ├── main/
-        │   │   ├── main.cpp          # WiFi + LVGL + 截屏
-        │   │   ├── CMakeLists.txt
-        │   │   └── idf_component.yml
-        │   ├── components/
-        │   │   ├── port_bsp/         # ST7305 LCD 驱动
-        │   │   ├── app_bsp/          # LVGL 端口层
-        │   │   └── esp_wifi_bsp/     # WiFi 初始化
-        │   └── sdkconfig.defaults
-        ├── 01~11_*/                  # 原始示例源码（未修改）
-        └── 10_FactoryProgram/
-            └── components/app_bsp/
-                └── esp_wifi_bsp.c    # ← WiFi 凭据已修改
+│
+├── projects/                         # ★ 定制开发固件
+│   └── wifi_sta/
+│       ├── main/
+│       │   ├── main.cpp              # WiFi + LVGL + 截屏
+│       │   ├── CMakeLists.txt
+│       │   └── idf_component.yml
+│       ├── components/
+│       │   ├── port_bsp/             # ST7305 LCD 驱动（含 GetPixel）
+│       │   ├── app_bsp/              # LVGL 端口层
+│       │   ├── esp_wifi_bsp/         # WiFi 初始化（凭据在此修改）
+│       │   └── user_app/             # 用户应用层
+│       ├── CMakeLists.txt
+│       └── sdkconfig.defaults
+│
+├── tools/                            # 开发工具
+│   └── screenshot.py                 # 屏幕截图工具
+│
+├── docs/                             # 参考资料与文档
+│   ├── FIRMWARE_REPORT.md            # 固件分析报告
+│   ├── SETUP_LOG.md                  # 安装调试日志
+│   └── examples/                     # 原厂示例（只读参考）
+│       └── ESP32-S3-RLCD-4.2-GitHub/
+│           └── 02_Example/ESP-IDF/
+│               ├── 01_WIFI_AP/       # 原厂示例（未修改）
+│               ├── 02_WIFI_STA/      # 原厂示例（未修改）
+│               └── ...               # 03~11 其他示例
 ```
 
 ---
