@@ -552,6 +552,70 @@ WiFi status auto-refresh @ 2s
 
 ---
 
+## 阶段十三：小智 AI 固件定制优化
+
+### 13.1 背景
+
+小智 AI v2.1.0（`78/xiaozhi-esp32`）是一个基于 MCP 协议的开源 AI 语音助手，支持 ESP32-S3 平台。但默认配置不包含 waveshare-s3-rlcd-4.2 的完整板级支持，且主题颜色未针对 1-bit 反射屏优化。
+
+### 13.2 板级支持
+
+**新增/修改文件：**
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `main/boards/waveshare-s3-rlcd-4.2/` | **新加** | 完整板级支持目录（config.h、custom_lcd_display、board class） |
+| `main/boards/common/board.h` | **修改** | 新增 `GetI2cBus()` 虚方法 |
+| `main/boards/waveshare-s3-rlcd-4.2/waveshare-s3-rlcd-4.2.cc` | **修改** | 添加 `GetI2cBus()` 实现、ADC 电池读取、完整板卡初始化 |
+
+### 13.3 显示优化
+
+| 修改 | 说明 |
+|------|------|
+| **1-bit 主题颜色** | 所有颜色强制为纯黑/纯白（1-bit 下渐变/彩色无意义） |
+| **气泡改用边框区分** | 用户气泡细边框，助理气泡粗边框，替代原来的绿色/灰色 |
+| **SHTC3 温湿度显示** | 读取板载温湿度传感器（I2C 0x70），状态栏循环显示 |
+| **ADC 电池读取** | GPIO4 电压检测，3.0V~4.12V 映射 0~100% |
+| **状态栏循环显示** | 温度 → 时钟 → 电池，每 4 秒切换 |
+| **深色主题反转** | 黑色背景 + 白色文字，适配 1-bit 反转模式 |
+
+### 13.4 状态栏布局（最终版）
+
+```
+┌────────────────────────────────┐
+│ 📶           🔇 🔋            │ ← 顶部状态栏（WiFi/静音/电池图标）
+├────────────────────────────────┤
+│     31C  45%                   │ ← 中央循环显示
+│     14:23                      │    温度湿度 → 时钟 → 电池
+│     BAT 85%                    │    每 4 秒切换
+├────────────────────────────────┤
+│         😊                     │ ← 表情/GIF
+│                                │
+```
+
+### 13.5 编译方式
+
+```bash
+cd D:\xiaozhi                          # 已拷贝到短路径避免 Windows 260 字符限制
+idf.py set-target esp32s3
+idf.py menuconfig                      # 选择 Board Type → waveshare-s3-rlcd-4.2
+idf.py build
+idf.py -p COM4 flash                   # 自动烧录应用 + assets 分区
+```
+
+### 13.6 关键配置
+
+| 配置项 | 值 |
+|--------|-----|
+| 唤醒词模型 | `WN9_NIHAOXIAOZHI_TTS`（你好小智） |
+| 唤醒词引擎 | AFE（Acoustic Front End）+ AEC |
+| 音频编解码 | ES8311（输出）+ ES7210（4 通道输入） |
+| 采样率 | 24kHz I2S TDM/STD |
+| 显示驱动 | ST7305，SPI 40MHz，1-bit，LUT 查表 |
+| 通信协议 | MQTT + WebSocket |
+
+---
+
 ## 附录：工具与版本
 
 | 工具 | 版本 | 用途 |
@@ -561,7 +625,10 @@ WiFi status auto-refresh @ 2s
 | xtensa-esp-elf | esp-14.2.0 | 交叉编译工具链 |
 | cmake | 3.30.2 | 构建系统 |
 | Python | 3.13.1 | ESP-IDF 宿主 |
-| LVGL | v8.4.0 | 图形 UI 框架（managed component） |
+| LVGL | v8.4.0 / v9.3.0 | 图形 UI 框架（projects_wifi / XiaoZhi） |
+| XiaoZhi AI | v2.1.0 | MCP 协议 AI 语音助手 |
+| ESP-SR | — | 离线语音唤醒（Wakenet9） |
+| Arduino CLI | — | esp32_llm 固件编译工具 |
 | PowerShell | 5.1 | 系统命令执行 |
 | OpenCode (Sisyphus) | — | AI 编排，并行 agent 调度 |
 
@@ -577,9 +644,12 @@ WiFi status auto-refresh @ 2s
 | WiFi 初始化源码 | `projects/wifi_sta/components/esp_wifi_bsp/esp_wifi_bsp.c` |
 | ST7305 显示驱动 | `projects/wifi_sta/components/port_bsp/display_bsp.cpp` |
 | LVGL 端口层 | `projects/wifi_sta/components/app_bsp/lvgl_bsp.cpp` |
+| XiaoZhi 板级配置 | `D:\xiaozhi\main\boards\waveshare-s3-rlcd-4.2\config.h` |
+| XiaoZhi 显示驱动 | `D:\xiaozhi\main\boards\waveshare-s3-rlcd-4.2\custom_lcd_display.cc` |
+| XiaoZhi 板卡类 | `D:\xiaozhi\main\boards\waveshare-s3-rlcd-4.2\waveshare-s3-rlcd-4.2.cc` |
+| XiaoZhi 显示主题 | `D:\xiaozhi\main\display\lcd_display.cc` |
+| XiaoZhi 分区表 | `D:\xiaozhi\partitions\v2\16m.csv` |
 | FactoryProgram WiFi 源码 | `docs/examples/.../10_FactoryProgram/components/app_bsp/esp_wifi_bsp.c` |
-| 板卡引脚配置 | `docs/examples/.../XiaoZhiCode_V2.1.0/main/boards/waveshare-s3-rlcd-4.2/config.h` |
-| XiaoZhi 分区表 | `docs/examples/.../XiaoZhiCode_V2.1.0/partitions/v2/16m.csv` |
 
 ---
 
