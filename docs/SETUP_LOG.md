@@ -641,6 +641,30 @@ python tools/screenshot.py COM4 --listen
 
 验证：`screenshot_20260731_214221.png` (400×300) 捕获成功。
 
+### 13.8 语音查询 MCP 工具
+
+参考 `self.audio_speaker.set_volume` 音量控制模式，新增 2 个语音可查询的设备状态工具：
+
+| MCP 工具 | 触发语音 | 返回 |
+|----------|---------|------|
+| `self.get_temperature_humidity` | "现在多少度？" / "湿度多少？" | `{"temperature_celsius":31,"humidity_percent":45}` |
+| `self.get_battery_level` | "电量还有多少？" | `{"level":85,"charging":false}` |
+
+**调用机制**（MCP = 设备端运行的工具服务器）：
+```
+用户语音 → ASR → LLM 识别意图
+  → 云端发送 JSON-RPC "tools/call"
+  → 设备端 DoToolCall() 匹配工具名
+  → 本地回调直接读硬件（SHTC3 I2C / ADC）
+  → 返回 JSON 结果 → LLM 组织语言 → TTS 播报
+```
+
+**代码实现：**
+- `board.h`：新增虚方法 `GetTemperatureHumidity()`（默认返回 false）
+- `waveshare-s3-rlcd-4.2.cc`：SHTC3 读取方法 + 2 个 MCP 工具注册
+
+验证：启动日志确认工具注册 `Add tool: self.get_temperature_humidity` / `self.get_battery_level`。
+
 ---
 
 ## 附录：工具与版本
