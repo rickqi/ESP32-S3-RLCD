@@ -689,6 +689,38 @@ I (7249) waveshare_rlcd_4_2: RTC: synced to 2026-08-01 00:57:19  ← OTA 写回
 重启验证: 时间从 00:57:19 → 00:57:53 持续走时（RTC 电池保持）✅
 ```
 
+### 13.10 KEY 按键三功能 + 状态栏循环显示优化
+
+**KEY 按键（GPIO18）三功能：**
+
+| 操作 | 功能 | 实现 |
+|------|------|------|
+| KEY 单击 | 切换麦克风静音 | `codec->EnableInput(!muted)` + 底部通知 |
+| KEY 双击 | 播放提示音 | `app.PlaySound(OGG_POPUP)` |
+| KEY 长按 | 显示系统信息 | IP/MAC/版本 → 底部通知 6s |
+
+**状态栏循环显示（20s 周期，带图标）：**
+
+```
+0-4s:   [温度计] 28°     ← FONT_AWESOME_TEMPERATURE_HALF
+4-8s:   [云雨]   40%     ← FONT_AWESOME_CLOUD_DRIZZLE
+8-12s:  [日历]   08-01   ← FONT_AWESOME_CALENDAR（新增日期）
+12-16s: [时钟]   14:23   ← FONT_AWESOME_CLOCK
+16-20s: [电池]   85%     ← 5级电池图标（按电量分级）
+```
+
+图标+数值用 **flex 行容器**整体居中（`status_icon_row_`），避免与顶部 WiFi 图标重叠、图标与数值间距过大。
+
+**布局修复：**
+- 通知从顶部 `status_bar_` 移到**底部** `bottom_bar_`（避免与循环显示重叠）
+- 非 idle 状态（Listening/Speaking）隐藏循环行，避免与状态文字重叠
+- SHTC3 温度公式加 `-4°C` 偏移（参考 05 示例 `SHTC3_PETP_VOL`），显示层统一调用板卡 `GetTemperatureHumidity()`
+- BOOT 长按截图后显示底部通知（尺寸/PBM/b64 信息）
+
+**验证：**
+- `tools/screenshot.py COM4 --listen` + BOOT 长按 → 成功保存 PNG
+- 像素分析：顶部状态栏 964 黑像素、循环区 506 黑像素、底部通知区正常
+
 ---
 
 ## 附录：工具与版本
