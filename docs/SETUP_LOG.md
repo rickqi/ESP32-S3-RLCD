@@ -614,6 +614,33 @@ idf.py -p COM4 flash                   # 自动烧录应用 + assets 分区
 | 显示驱动 | ST7305，SPI 40MHz，1-bit，LUT 查表 |
 | 通信协议 | MQTT + WebSocket |
 
+### 13.7 截图功能
+
+小智 AI 固件已集成 `tools/screenshot.py` 截图协议（SCREENSHOT_START/base64/SCREENSHOT_END）。
+
+**触发方式：**
+
+| 方式 | 说明 |
+|------|------|
+| 自动截图 | 启动后 ~12 秒自动截一次（屏幕稳定后） |
+| BOOT 长按 | 按住 BOOT 键 2 秒触发 |
+| 串口 SHOOT | 已实现（USB-JTAG 下串口输入不可用） |
+
+**使用：**
+```bash
+# 复位自动截图（推荐）
+python tools/screenshot.py COM4
+
+# 长按 BOOT 键截图
+python tools/screenshot.py COM4 --listen
+```
+
+**代码实现：**
+- `custom_lcd_display.h/.cc`：新增 `GetPixel(x,y)` 像素读取（LUT 反向映射）
+- `waveshare-s3-rlcd-4.2.cc`：`TakeScreenshot()` 生成 P4 PBM → base64 → 串口输出
+
+验证：`screenshot_20260731_214221.png` (400×300) 捕获成功。
+
 ---
 
 ## 附录：工具与版本
