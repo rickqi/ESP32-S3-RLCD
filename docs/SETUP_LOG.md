@@ -665,6 +665,30 @@ python tools/screenshot.py COM4 --listen
 
 验证：启动日志确认工具注册 `Add tool: self.get_temperature_humidity` / `self.get_battery_level`。
 
+### 13.9 PCF85063 RTC 时钟集成
+
+解决小智 AI 时钟依赖网络时间（OTA `settimeofday()`）的问题——开机后需等 10~30 秒才有时间显示，断电丢时间。
+
+**集成方案：**
+
+```
+上电 → RtcReadTime() → settimeofday() → 时钟立即显示 ✅
+OTA 服务器同步 → SyncRtcToSystemTime() → 写回 RTC ✅
+断电 → RTC 电池持续走时 → 下次开机时间正确 ✅
+```
+
+**代码实现：**
+- `waveshare-s3-rlcd-4.2.cc`：轻量 PCF85063 驱动（`RtcReadTime`/`RtcWriteTime`/`InitRtcClock`），使用新 IDF I2C API，**不依赖 SensorLib**
+- `board.h`：新增虚方法 `SyncRtcToSystemTime()`（默认空实现）
+- `application.cc`：OTA 激活后调用 `Board::SyncRtcToSystemTime()` 写回 RTC
+
+**验证：**
+```
+I (219) waveshare_rlcd_4_2: RTC: boot time 2026-08-01 00:57:53   ← 启动即读
+I (7249) waveshare_rlcd_4_2: RTC: synced to 2026-08-01 00:57:19  ← OTA 写回
+重启验证: 时间从 00:57:19 → 00:57:53 持续走时（RTC 电池保持）✅
+```
+
 ---
 
 ## 附录：工具与版本
