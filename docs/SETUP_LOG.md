@@ -723,6 +723,44 @@ I (7249) waveshare_rlcd_4_2: RTC: synced to 2026-08-01 00:57:19  ← OTA 写回
 
 ---
 
+### 13.11 SD 卡录音/播放 + SD 日志 + 按键三击诊断
+
+**SD 卡（TF）挂载（SDMMC 1-bit）**
+
+- 引脚：CLK=GPIO38, CMD=GPIO21, D0=GPIO39
+- config.h 新增 SD 引脚定义；sdkconfig.defaults 启用 CONFIG_FATFS_LFN_HEAP（长文件名支持）
+- 挂载点 /sdcard，自动创建 
+ecords/ 与 logs/ 目录
+
+**录音 / 播放（WAV 24kHz 2ch 16bit）**
+
+| 功能 | 触发 | 说明 |
+|------|------|------|
+| 录音切换 | BOOT 双击 | 写 /sdcard/records/rec_YYYYMMDD_HHMMSS.wav，显示 REC 24kHz 2ch 16bit 768Kbps |
+| 播放最新录音 | KEY 三击 | PlayLatestRecording()，2ch→1ch 提取麦克风声道，进度 Playing... N% |
+| MCP 工具 | 语音命令 | list_recordings / play_recording / 
+ecord_audio / delete_recording |
+
+**SD 日志系统**
+
+- esp_log_set_vprintf(SdLogVprintf) 将全部 ESP_LOG 同时写入控制台与 /sdcard/logs/log_YYYYMMDD.txt
+- 日志文件打开延迟 5s（等 FATFS VFS 就绪），sync() 保证落盘（默认 CONFIG_FATFS_IMMEDIATE_FSYNC 未启用，仅 flush 不落盘）
+- 串口命令 LOG 导出 SD 日志内容（DumpSdLog()）；开机 ~12.5s 自动 dump 一次
+
+**KEY 三击不触发的诊断结论**
+
+- KEYMON 诊断任务确认 GPIO18 电平变化正常（按下=低，与板上 GP18_Active 0 一致），单击/双击回调均正常触发
+- 用户实际按的是 **BOOT（GPIO0）**，BOOT 未注册三击事件，因此三击无响应 —— 非固件缺陷
+- KEY 三击播放已通过 KEYMON 电平监控验证链路完整（GPIO 电平 → iot_button → 回调 → 日志）
+
+**已知问题 / 备注**
+
+- USB-JTAG 串口**输入**不可靠（SHOOT/LOG 命令偶发无响应），但**输出**（日志/截图 base64）稳定
+- Windows 上残留 esptool/capture_screenshot.py 进程会占用 COM4 导致烧录失败，需先清理
+- FATFS 写日志后需 sync() 才能被独立句柄读取（CONFIG_FATFS_IMMEDIATE_FSYNC 未启用时）
+
+---
+
 ## 附录：工具与版本
 
 | 工具 | 版本 | 用途 |
